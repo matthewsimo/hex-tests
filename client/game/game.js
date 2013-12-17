@@ -81,7 +81,7 @@ Game.init = function(game) {
  * Initialize Game Stage ************/
 Game.buildStage = function() {
 
-  hex = Crafty.hexagraphic.init(64, 64, mapsize.x, mapsize.y);
+  hex = Crafty.hexametric.init(64, 64, mapsize.x, mapsize.y);
 
   Crafty.sprite(64, "img/tiles/tile-sprite.png", {
     "tile0":[0,0],
