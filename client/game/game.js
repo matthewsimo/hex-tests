@@ -2,27 +2,24 @@
 Template.game.events({
 
   'moveUp': function (event, template) {
-    console.log("Move Up Fired!");
-    Cursor.move("up");
+    // Check if P1 - move NE || move NW 
+    Cursor.move("NE");
   },
 
   'moveRight': function (event, template) {
-    console.log("Move Right Fired!");
-    Cursor.move("right");
+    Cursor.move("E");
   },
 
   'moveDown': function (event, template) {
-    console.log("Move Down Fired!");
-    Cursor.move("down");
+    // Check for P1, move SE || SW
+    Cursor.move("SE");
   },
 
   'moveLeft': function (event, template) {
-    console.log("Move Left Fired!");
-    Cursor.move("left");
+    Cursor.move("W");
   },
 
   'moveConfirm': function (event, template) {
-    console.log("Movement Confirmed");
     Cursor.confirm();
   },
 
@@ -103,7 +100,7 @@ Game.buildStage = function() {
       var tile = Game.getRandomInt(0,5);
       row.push(tile);
 
-      var t = Crafty.e("2D, Canvas, tile"+tile)
+      var t = Crafty.e("2D, DOM, tile"+tile)
                 .attr({w: 64, h: 64});
 
       hex.place(t, x, y, 1);
@@ -235,16 +232,16 @@ Player.damage = function(){
 /*************************************
 /* Cursor Interface 
  ************************************/
-var Cursor = {};
+Cursor = {};
 
 /* 
  * Cursor Init **********************/
 Cursor.init = function() {
 
-  var x = 1;
-  var y = 1;
+  var x = 0;
+  var y = 0;
 
-  var c = Crafty.e("2D, Canvas, SpriteAnimation, CursorSprite")
+  var c = Crafty.e("2D, DOM, SpriteAnimation, CursorSprite")
                 .reel('CursorBlink', 1000, [[0,1], [2,1]])
                 .animate('CursorBlink', -1);
 
@@ -254,42 +251,134 @@ Cursor.init = function() {
 
 };
 
+Cursor.isOdd = function(y) {
+
+  if(y%2)
+    return true;
+  else
+    return false;
+
+};
+
+Cursor.checkBounds = {};
+
+Cursor.checkBounds.North = function(y) {
+  if( y > 0 )
+    return true;
+  else 
+    return false;
+};
+
+Cursor.checkBounds.South = function(y) {
+  if( y < (mapsize.y - 1) )
+    return true;
+  else 
+    return false;
+};
+
+Cursor.checkBounds.East = function(x) {
+  if( x < (mapsize.x - 1) ) 
+    return true;
+  else
+    return false;
+};
+
+Cursor.checkBounds.West = function(x) {
+  if( x > 0 )
+    return true;
+  else
+    return false;
+};
+
+
+
 /*
  * Cursor Move **********************/
-Cursor.move = function(delta) {
+Cursor.move = function(direction) {
 
-  var direction;
-  /* Directions
-   *
-   * 0 - East
-   * 1 - South East
-   * 2 - South West
-   * 3 - West
-   * 4 - North West
-   * 5 - North East */
+  var pos = cursor.pos();
+  var hexPos = hex.px2pos(pos._x, pos._y);
 
-  switch(delta) {
-    case "up":
-      direction = 5;
+  var newX = hexPos.x;
+  var newY = hexPos.y;
+  var moveFailed = false;
+
+
+  // Don't forget mapsize.x is just number of columns, not the zero-base array index
+  switch(direction) {
+    case "E":
+      console.log("Moving E");
+      if(Cursor.checkBounds.East(hexPos.x) ) 
+        newX += 1;
       break;
-    case "right":
-      direction = 0;
+
+    case "SE":
+      console.log("Moving SE");
+      if(Cursor.checkBounds.South(hexPos.y) ) {
+        newY += 1;
+
+        if( Cursor.checkBounds.East(hexPos.x) && !Cursor.isOdd(hexPos.y) )
+          newX += 1;
+      }
+
       break;
-    case "down":
-      direction = 1;
+
+    case "SW":
+      console.log("Moving SW");
+      if(Cursor.checkBounds.South(hexPos.y) ) {
+        newY += 1;
+        if( Cursor.checkBounds.West(hexPos.x) && Cursor.isOdd(hexPos.y) )
+          newX -= 1;
+      }
+
       break;
-    case "left":
-      direction = 3;
+
+    case "W":
+      console.log("Moving W");
+      if(Cursor.checkBounds.West(hexPos.x) )
+        newX -= 1;
       break;
+
+    case "NW":
+      console.log("Moving NW");
+      if(Cursor.checkBounds.North(hexPos.y) ) {
+        newY -= 1; 
+
+        if( Cursor.checkBounds.West(hexPos.x) && Cursor.isOdd(hexPos.y) )
+          newX -= 1;
+      }
+      
+      break;
+
+    case "NE":
+      console.log("Moving NE");
+      if(Cursor.checkBounds.North(hexPos.y) ) {
+        newY -= 1; 
+
+        if( Cursor.checkBounds.East(hexPos.x) && !Cursor.isOdd(hexPos.y) )
+          newX += 1;
+      }
+      
+      break;
+
     default:
-      direction = 0;
       break;
   };
 
-  console.log(cursor);
-  console.log(cursor.pos());
 
-  console.log( direction );
+
+  // Check if Move failed
+  if( (hexPos.x === newX) && (hexPos.y === newY) )
+    moveFailed = true;
+
+  // Handle Failed/Successful Move
+  if(moveFailed) {
+    console.log("Move Failed");
+    console.log("hexPos: " + hexPos.x + ", " + hexPos.y );
+    console.log("mapsize: " + mapsize.x + ", " + mapsize.y );
+  } else
+    hex.place(cursor, newX, newY, 2);
+
 };
 
 /* 
